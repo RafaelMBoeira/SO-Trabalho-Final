@@ -6,6 +6,7 @@ package com.me.members;
 
 import com.me.saloon.Saloon;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 /**
  *
@@ -13,19 +14,40 @@ import java.util.Random;
  */
 public class Client implements Runnable{
     private int id;
-    private int entryTime;
     private int cutTime;
-    private Saloon room;
+    private Saloon saloon;
+    private Barber barber;
     
-    public Client(int id, Saloon room){
+    public Client(int id, Saloon saloon){
+        this.id = id;
         Random timer = new Random();
-        this.cutTime = timer.nextInt(5);
-        this.room = room;
+        this.cutTime = 3 + timer.nextInt(5);
+        this.saloon = saloon;
+    }
+    
+    public void setBarber(Barber barber) {
+        this.barber = barber;
+    }
+    
+    public void quit(){
+        this.saloon.removeClient(this);
+        try{
+            this.saloon.remOrInsBarber(barber);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
     
     @Override
     public void run(){
-        
+        try{
+            if (saloon.hasSeats(this)){
+                Thread cutting = new Thread(barber);
+                cutting.start();
+            }
+        } catch(InterruptedException e) {
+            e.printStackTrace();
+        }
     }
     
     public int getCutTime(){

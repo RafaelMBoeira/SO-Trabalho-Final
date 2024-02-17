@@ -4,7 +4,7 @@
  */
 package com.me.members;
 
-import Utensils.ScissorsAndComb;
+import com.me.Utensils.ScissorsAndComb;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -12,38 +12,40 @@ import java.util.concurrent.Semaphore;
  * @author rafaelboeira
  */
 public class Barber implements Runnable{
+    private int id;
     private ScissorsAndComb tools;
     private Client client;
-    private boolean status = false;
+    private boolean available;
     private final Semaphore semaphore = new Semaphore(1);
     
-    public Barber(ScissorsAndComb tools){
+    public Barber(int id, ScissorsAndComb tools){
+        this.id = id;
         this.tools = tools;
+        this.available = true;
     }
     
-    public void setClient(Client client) throws InterruptedException{
-        semaphore.acquire();
-
-        try {
-            this.status = true;
-            this.client = client;
-        } finally {
-            semaphore.release();
-        }
-        
-        this.run();
-        
+    public void setClient(Client client){
+        this.available = false;
+        this.client = client;
+    }
+    
+    public boolean isAvailable(){
+        return this.available;
     }
     
     public Client getClient(){
         return client;
     }
     
+    public int getId(){
+        return id;
+    }
+    
     @Override
     public void run() {
         try {
-            this.tools.cut(client);
-            System.out.printf("Ive just cutted the hair of client %d\n", client.getId());
+            this.available = this.tools.cut(client);
+            System.out.printf("%d just cutted the hair of client %d, in %d seconds\n",id,  client.getId(), client.getCutTime());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
