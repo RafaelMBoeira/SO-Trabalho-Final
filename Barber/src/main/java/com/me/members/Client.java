@@ -21,7 +21,7 @@ public class Client implements Runnable{
     public Client(int id, Saloon saloon){
         this.id = id;
         Random timer = new Random();
-        this.cutTime = 3 + timer.nextInt(5);
+        this.cutTime = 1*(3 + timer.nextInt(3));
         this.saloon = saloon;
     }
     

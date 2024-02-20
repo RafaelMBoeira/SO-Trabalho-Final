@@ -14,24 +14,42 @@ import java.util.concurrent.Semaphore;
  * @author rafaelboeira
  */
 public class ScissorsAndComb {
-    private final Semaphore semaphore;
+    private final Semaphore semScissors;
+    private final Semaphore semComb;
     
     public ScissorsAndComb(int qtd){
-        this.semaphore = new Semaphore(qtd);
+        this.semScissors = new Semaphore(qtd);
+        this.semComb = new Semaphore(qtd);
     }
     
-    public boolean cut(Client client) throws InterruptedException{
-        semaphore.acquire();
-
+    public void usingScissor(Client client) throws InterruptedException{
+        semScissors.acquire();
+        
         try {
-            sleep(client.getCutTime());
+            sleep(client.getCutTime()/2);
+            System.out.printf("Scissor: %d\n", client.getId());
+        } finally {
+            // Libera a permissão do semáforo
+            semScissors.release();
+        }
+    }
+    
+    public void usingComb(Client client) throws InterruptedException{
+        semComb.acquire();
+        
+        try {
+            sleep(client.getCutTime()/2);
+            System.out.printf("Comb: %d\n", client.getId());
             client.quit();
         } finally {
             // Libera a permissão do semáforo
-            semaphore.release();
+            semComb.release();
         }
-        
-        return true;
+    }
+    
+    public void cut(Client client) throws InterruptedException{
+        usingScissor(client);
+        usingComb(client);
     }
 
 }

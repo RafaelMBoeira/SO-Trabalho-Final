@@ -131,19 +131,13 @@ public class Saloon {
         return false;
     }
     */
-    public void releaseBarber(Barber barber) throws InterruptedException{
-
-        this.barbers.push(barber);
-        
-
-    }
     
     public void removeClient(Client client){
         this.clients.remove(client);
     }
     
     public static void main(String[] args) {
-        int n = 10;
+        int n = 5;
         int clients = 50;
         Saloon s = new Saloon(n);
         
