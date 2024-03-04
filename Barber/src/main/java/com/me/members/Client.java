@@ -12,16 +12,16 @@ import java.util.concurrent.Semaphore;
  *
  * @author rafaelboeira
  */
-public class Client implements Runnable{
+public class Client implements Runnable {
     private int id;
     private int cutTime;
     private Saloon saloon;
     private Barber barber;
     
-    public Client(int id, Saloon saloon){
+    public Client(int id, Saloon saloon){        
         this.id = id;
         Random timer = new Random();
-        this.cutTime = 1*(3 + timer.nextInt(3));
+        this.cutTime = 1000*(3 + timer.nextInt(3));
         this.saloon = saloon;
     }
     
@@ -29,25 +29,8 @@ public class Client implements Runnable{
         this.barber = barber;
     }
     
-    public void quit(){
-        this.saloon.removeClient(this);
-        try{
-            this.saloon.remOrInsBarber(barber);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-    }
-    
-    @Override
-    public void run(){
-        try{
-            if (saloon.hasSeats(this)){
-                Thread cutting = new Thread(barber);
-                cutting.start();
-            }
-        } catch(InterruptedException e) {
-            e.printStackTrace();
-        }
+    public void quit() throws InterruptedException{
+        saloon.finishCut(barber, this);
     }
     
     public int getCutTime(){
@@ -56,5 +39,16 @@ public class Client implements Runnable{
     
     public int getId(){
         return id;
+    }
+    
+    @Override
+    public void run(){
+        try{
+            if (saloon.hasSeats(this)){
+                saloon.assignBarber(this);
+            }
+        } catch(InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

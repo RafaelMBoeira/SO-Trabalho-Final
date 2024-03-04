@@ -4,7 +4,7 @@
  */
 package com.me.members;
 
-import com.me.Utensils.ScissorsAndComb;
+import com.me.utensils.ScissorsAndComb;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -15,7 +15,6 @@ public class Barber implements Runnable{
     private int id;
     private ScissorsAndComb tools;
     private Client client;
-    private final Semaphore semaphore = new Semaphore(1);
     
     public Barber(int id, ScissorsAndComb tools){
         this.id = id;
@@ -38,7 +37,8 @@ public class Barber implements Runnable{
     public void run() {
         try {
             this.tools.cut(client);
-            System.out.printf("%d just cutted the hair of client %d, in %d seconds\n",id,  client.getId(), client.getCutTime());
+            client.quit();
+            //System.out.printf("%d cortou o cabelo do cliente %d, em %d segundos\n",id,  client.getId(), client.getCutTime());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

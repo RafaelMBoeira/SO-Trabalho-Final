@@ -4,148 +4,172 @@
 
 package com.me.saloon;
 
-import com.me.Utensils.ScissorsAndComb;
+import com.me.utensils.ScissorsAndComb;
 import com.me.members.Barber;
 import com.me.members.Client;
+import static java.lang.Thread.sleep;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 /**
  *
  * @author rafaelboeira
  */
-public class Saloon {
+public class Saloon implements Runnable {
     private ScissorsAndComb tools;
     private LinkedList<Barber> barbers;
-    private LinkedList<Client> clients;
-    private int maxCapacity;
+    private LinkedList<Client> waitingClients;
+    private LinkedList<Client> cuttingClients;
+    private LinkedList<HashMap<String, LinkedList<Client>>> events;
+    
+    private int maxBarbers;
+    private int maxWaitingClients;
+    
+    private int seatedClients = 0;
+    private int totalClients = 0;
+    private int attendedClients = 0;
+    
     private final Semaphore newClient = new Semaphore(1);
-    private final Semaphore modify = new Semaphore(1);
-    
-    public Saloon(int n){
-        maxCapacity = n;
-        tools = new ScissorsAndComb(n/2);
-        clients = new LinkedList<>();
-        barbers = new LinkedList<>();
-        for(int i=0; i<n; i++)
-            barbers.add(new Barber(i, tools));
-    }
-    
-    public Barber removeBarber(){
-        Barber barber;
-        try{
-            barber = barbers.pop();
-        } catch(Exception e){
-            return null;
-        }
+    private final Semaphore barberAssignal = new Semaphore(1);    
+    private final Semaphore concurrentCuts;
            
-        return barber;
+    public Saloon(int n, int m){
+        maxBarbers = n;
+        maxWaitingClients = m;
+        
+        tools = new ScissorsAndComb((int)(n/2));
+        
+        waitingClients = new LinkedList<>();
+        cuttingClients = new LinkedList<>();
+        barbers = new LinkedList<>();
+        events = new LinkedList<>();
+        
+        for(int i=0; i<maxBarbers; i++)
+            barbers.add(new Barber(i, tools));
+        
+        concurrentCuts = new Semaphore(maxBarbers);
     }
     
-    public Barber remOrInsBarber(Object x) throws InterruptedException{
-        modify.acquire();
-        if (x == null){
-            Barber barber = removeBarber();
-            modify.release();
-            return barber;
-        }
+    public void finishCut(Barber barber, Client client){
+        barbers.add(barber);
+        cuttingClients.remove(client);
+        saveState();
+    }        
+    
+    public void assignBarber(Client client) throws InterruptedException {
+        //System.out.printf("Barbeiro do cliente %d será escolhido\n", client.getId());
+        concurrentCuts.acquire();
+        barberAssignal.acquire();
         
-        barbers.push((Barber) x);
-        modify.release();
-        return null;
+        Barber barber = barbers.pop();
+        
+        seatedClients--;
+        waitingClients.remove(client);
+        cuttingClients.add(client);
+        
+        //System.out.printf("client: %d barber: %d\n", client.getId(), barber.getId());
+        //System.out.printf("asb_size: %d\n", seatedClients);
+        
+        client.setBarber(barber);
+        barber.setClient(client);        
+        
+        saveState();
+        barberAssignal.release();
+        
+        Thread cutting = new Thread(barber);            
+        cutting.start();
+        cutting.join();
+        
+        //System.out.printf("cliente: %d liberadooooooooooooooo\n", client.getId());
+        concurrentCuts.release();
     }
     
     public boolean hasSeats(Client client) throws InterruptedException{
         newClient.acquire();
-        System.out.printf("client: %d\n",client.getId());
-        Barber barber = remOrInsBarber(null);
-        if (barber == null){
-            System.out.println("isnt available---------------------------");
-            System.out.printf("size: %d\n", clients.size());
+        totalClients++;
+        //System.out.printf("cliente %d chegou\n", client.getId());
+        if (this.isFull()){
+            //System.out.println("no seats---------------------------");
+            //System.out.printf("nc_size: %d\n", seatedClients);
             newClient.release();
             return false;
         }
+        waitingClients.add(client);
+        seatedClients++;
+        attendedClients++;
         
-        client.setBarber(barber);
-        barber.setClient(client);
-        clients.add(client);
-        System.out.println("isAvailable");
-        System.out.printf("barber: %d\n", barber.getId());
-        System.out.printf("size: %d\n", clients.size());
+        saveState();
+        //System.out.println("isAvailable __________________");
+        //System.out.printf("nc_size: %d\n", seatedClients);
+        
         newClient.release();
         return true;
     }
-    /*
-    public boolean hasSeats(Client client) throws InterruptedException{
-        newClient.acquire();
-        
-        boolean flag = true;
-        System.out.printf("client: %d\n",client.getId());
-        Barber barber = null;
-        try{
-            barber = barbers.pop();
-        } catch(NoSuchElementException e){
-            System.out.println("isnt available---------------------------");
-            System.out.printf("size: %d\n", clients.size());
-            flag = false;
-        }
-        if (!flag){
-            newClient.release();
-            return false;
-        }
-        System.out.println("isAvailable");
-        System.out.printf("barber: %d\n", barber.getId());
-        client.setBarber(barber);
-        barber.setClient(client);
-        clients.add(client);
-        
-        System.out.printf("size: %d\n", clients.size());
-        newClient.release();
-        return flag;
+    
+    public boolean isFull(){
+        return seatedClients == maxWaitingClients;    
     }
-    */
-    /*
-    public boolean addNewClient(Client client) throws InterruptedException{
-        newClient.acquire();
-        System.out.printf("client: %d\n",client.getId());
-        for(Barber barber: barbers){
-            if (barber.isAvailable()){
-                System.out.println("isAvailable");
-                System.out.printf("barber: %d\n", barber.getId());
-                
-                clients.add(client);
-                client.setBarber(barber);
-                barber.setClient(client);
-                
-                System.out.printf("size: %d\n", clients.size());
-                
-                newClient.release();
-                return true;
+    
+    public void showReport(){
+        System.out.printf("Total de Clientes: %d\nClientes Atendidos: %d\n", totalClients, attendedClients);
+    }
+    
+    public void saveState(){
+        HashMap<String, LinkedList<Client>> state = new HashMap<>();
+        
+        state.put("waiting", (LinkedList<Client>)waitingClients.clone());
+        state.put("cutting", (LinkedList<Client>)cuttingClients.clone());
+        
+        events.add(state);
+    }
+    
+    public void showEvents(){
+        int i = 0;
+        for(HashMap<String, LinkedList<Client>> state: events){
+            System.out.printf("\n\n\n-------- Evento %d | Cadeiras de Barbear: %d | Cadeiras de Espera: %d --------\n", i+1, maxBarbers, maxWaitingClients);
+            i++;
+            LinkedList<Client> wc = state.get("waiting");
+            LinkedList<Client> cc = state.get("cutting");
+            
+            for (Client client: wc){
+                System.out.print("c" + client.getId() + " | ");
             }
+            System.out.println(" Cadeiras de Espera\n_____________________________________________");
+            for (Client client: cc){
+                System.out.print("c" + client.getId() + " | ");
+            }
+            System.out.println(" Cadeiras de Barbear");
         }
-        newClient.release();
-        System.out.println("isnt available");
-        System.out.printf("size: %d\n", clients.size());
-        return false;
-    }
-    */
-    
-    public void removeClient(Client client){
-        this.clients.remove(client);
     }
     
-    public static void main(String[] args) {
-        int n = 5;
+    @Override
+    public void run(){
         int clients = 50;
-        Saloon s = new Saloon(n);
+        LinkedList<Thread> clientThreads = new LinkedList<>();
         
         for(int i=0; i<clients; i++){
-            Client newClient = new Client(i, s);
+            Client newClient = new Client(i, this);
+            
             Thread clientArrival = new Thread(newClient);
             clientArrival.start();
+            clientThreads.add(clientArrival);
+            
+            try{
+                sleep(100*(new Random()).nextInt(5));
+            } catch(InterruptedException e){}
         }
-      
-    }
+        
+        for(Thread t: clientThreads){
+            try{
+                t.join();
+            } catch(InterruptedException e){
+                e.printStackTrace();
+            }
+        }
+    }    
+    
 }
