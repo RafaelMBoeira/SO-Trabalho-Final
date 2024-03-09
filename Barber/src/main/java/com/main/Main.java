@@ -27,11 +27,22 @@ public class Main {
             try{
                 System.out.print("Digite o número de barbeiros: ");
                 maxBarbers = Integer.parseInt(input.next());
-                if (maxBarbers == 0)
-                    maxBarbers = Integer.parseInt("");
-                
+                if (maxBarbers <= 0)
+                    maxBarbers = Integer.parseInt("");                                
+            } catch(NumberFormatException nfe){
+                System.out.println("Entrada Inválida!");
+                continue;
+            }
+            valid = true;
+        }
+        valid = false;
+        
+        while(!valid){
+            try{
                 System.out.print("Digite o numero de cadeiras de espera: ");
                 maxWaitingClients = Integer.parseInt(input.next());
+                if (maxWaitingClients <= 0)
+                    maxWaitingClients = Integer.parseInt("");
             } catch(NumberFormatException nfe){
                 System.out.println("Entrada Inválida!");
                 continue;

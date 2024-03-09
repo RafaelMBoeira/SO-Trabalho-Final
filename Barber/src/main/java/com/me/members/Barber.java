@@ -37,8 +37,7 @@ public class Barber implements Runnable{
     public void run() {
         try {
             this.tools.cut(client);
-            client.quit();
-            //System.out.printf("%d cortou o cabelo do cliente %d, em %d segundos\n",id,  client.getId(), client.getCutTime());
+            client.quit();            
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -61,7 +61,6 @@ public class Saloon implements Runnable {
     }        
     
     public void assignBarber(Client client) throws InterruptedException {
-        //System.out.printf("Barbeiro do cliente %d será escolhido\n", client.getId());
         concurrentCuts.acquire();
         barberAssignal.acquire();
         
@@ -70,9 +69,6 @@ public class Saloon implements Runnable {
         seatedClients--;
         waitingClients.remove(client);
         cuttingClients.add(client);
-        
-        //System.out.printf("client: %d barber: %d\n", client.getId(), barber.getId());
-        //System.out.printf("asb_size: %d\n", seatedClients);
         
         client.setBarber(barber);
         barber.setClient(client);        
@@ -84,17 +80,13 @@ public class Saloon implements Runnable {
         cutting.start();
         cutting.join();
         
-        //System.out.printf("cliente: %d liberadooooooooooooooo\n", client.getId());
         concurrentCuts.release();
     }
     
     public boolean hasSeats(Client client) throws InterruptedException{
         newClient.acquire();
         totalClients++;
-        //System.out.printf("cliente %d chegou\n", client.getId());
         if (this.isFull()){
-            //System.out.println("no seats---------------------------");
-            //System.out.printf("nc_size: %d\n", seatedClients);
             newClient.release();
             return false;
         }
@@ -103,8 +95,6 @@ public class Saloon implements Runnable {
         attendedClients++;
         
         saveState();
-        //System.out.println("isAvailable __________________");
-        //System.out.printf("nc_size: %d\n", seatedClients);
         
         newClient.release();
         return true;
@@ -148,7 +138,7 @@ public class Saloon implements Runnable {
     
     @Override
     public void run(){
-        int clients = 50;
+        int clients = 25 + (new Random()).nextInt(26);
         LinkedList<Thread> clientThreads = new LinkedList<>();
         
         for(int i=0; i<clients; i++){
@@ -159,7 +149,7 @@ public class Saloon implements Runnable {
             clientThreads.add(clientArrival);
             
             try{
-                sleep(100*(new Random()).nextInt(5));
+                sleep((new Random()).nextInt(1000));
             } catch(InterruptedException e){}
         }
         
